@@ -1,0 +1,219 @@
+<div class="venuesBox ml30 mr30 mt10">
+    <a class="btn btn-e mr20 JS_repaint" href="javascript:;" onclick="resetSvg()">重新绘制</a>
+    <a class="btn btn-e" href="javascript:;" onclick="saveSvg()">保存</a>
+    <!-- <button onclick="uploadImg()">上传上传图片</button> -->
+    <input id="file" type="file" onchange="changeImg(event)"  accept="image/png,image/jpg,image/jpeg,imge/bmp,image/gif">
+    <!-- 占位区域，有真实内容是 此处 seizeSeat 可以删除 -->
+    <!--      <iframe src="--><!--/libs/method-draw/index.html" height="600px" width="100%"-->
+    <!--              class="box-venues-edit" id="svgedit" onload="init_embed()" ></iframe>-->
+  <iframe src="index.html" height="572px" width="100%" class="box-venues-edit" id="svgedit"></iframe></div>
+
+<!-- <iframe src="index.html"
+width="100%" height="100%"></iframe> -->
+<script src="lib/jquery.js"></script>
+<script src="embedapi.js"></script>
+<script>
+
+    
+var iframe = document.getElementById("svgedit");
+
+//   var iframe = document.createElement("iframe");
+//   iframe.src = "http://static.lab.evente.cn//libs/method-draw/index.html";
+if (iframe.attachEvent) {
+iframe.attachEvent("onload", function () {
+  init_embed()
+});
+} else {
+iframe.onload = function () {
+  init_embed()
+};
+}
+iframe.onload = function () {
+  init_embed()
+};
+//   $(iframe).attr('height', '600px')
+//   $(iframe).attr('width', '100%')
+//   $(iframe).attr('class', 'box-venues-edit')
+//   $(iframe).attr('id', 'svgedit')
+//   $('.venuesBox').append($(iframe));
+
+
+var svgCanvas = null;
+var is_submit = false;
+//第一个有图，
+//var svgXml ="<svg id='svgArea' height='480' width='640' viewBox='0 0 640 480'  xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><image xlink:href='http://qnimg.inner.evente.cn/8c/aa/e7/99b6da1c7b6e6493e2d859988a.jpg' id='svg_bg_image_' height='480' width='640' y='0' x='0'  /><rect height='97' width='277' y='133' x='123.5' stroke-width='1.5' stroke='#000' fill='#0fffff' id='697'  /><ellipse ry='45' rx='67' cy='351' cx='238.5' stroke-width='1.5' stroke='#000' fill='#0000ff' id='698'  /></svg>";
+//第二个没有图(报错的)
+//var svgXml = "<svg id='svgArea' height='480' width='640' viewBox='0 0 640 480'  xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><image x='0' y='0' width='640' height='480' id='svg_bg_image_'  /><rect fill='#fff' stroke='#000' stroke-width='1.5' x='101.5' y='133' width='267' height='96' id='684'  /><ellipse fill='#fff' stroke='#000' stroke-width='1.5' cx='216' cy='304.5' rx='74.5' ry='25.5' id='685'  /></svg>";
+//修改有问题报错
+//var svgXml="<svg id='svgArea' height='480' width='640' viewBox='0 0 640 480'  xmlns='http://www.w3.org/2000/svg' xmlns:xlink='http://www.w3.org/1999/xlink'><defs></defs><g style='pointer-events:none'><title style='pointer-events:inherit'>background</title><rect x='-1' y='-1' width='582' height='402' id='canvas_background' fill='none' style='pointer-events:inherit'></rect></g><g style='pointer-events:all'><title style='pointer-events:inherit'>Layer 1</title><image x='0' y='0' width='640' height='480' id='svg_bg_image_'  /><rect fill='#fff' stroke='#000' stroke-width='1.5' x='101.5' y='133' width='267' height='96' id='684'  /><ellipse fill='#fff' stroke='#000' stroke-width='1.5' cx='216' cy='304.5' rx='74.5' ry='25.5' id='685'  /></g></svg>";
+//自己研究没图不报错的（第一个rect fill none透明的）
+//var svgXml="<svg width='640' height='480' xmlns='http://www.w3.org/2000/svg'> <g> <title>background</title> <rect fill='#fff' id='canvas_background' height='482' width='642' y='-1' x='-1'/> <g display='none' overflow='visible' y='0' x='0' height='100%' width='100%' id='canvasGrid'> <rect fill='url(#gridpattern)' stroke-width='0' y='0' x='0' height='100%' width='100%'/> </g> </g> <g> <title>Layer 1</title> <ellipse ry='45' rx='67' cy='351' cx='238.5' stroke-width='1.5' stroke='#000' fill='#0000ff' id='698'></ellipse></g> </svg>"
+//龙龙没有图片（image放的位置不对没有读出背景图片）
+//var svgXml="<svg width= ' 640 ' height=' 480 ' xmlns='http://www.w3.org/2000/svg'><g> <title>background</title><rect fill='none' id='canvas_background' height='482' width='642' y='-1' x='-1'/><g display='none' overflow='visible' y='0' x='0' height='100%' width='100%' id='canvasGrid'> <rect fill='url(#gridpattern)' stroke-width='0' y='0' x='0' height='100%' width='100%'/> </g> </g><g> <title>Layer 1</title><rect height='97' width='277' y='133' x='123.5' stroke-width='1.5' stroke='#000' fill='#0fffff' id='697'  /><ellipse ry='45' rx='67' cy='351' cx='238.5' stroke-width='1.5' stroke='#000' fill='#0000ff' id='698'  /><image xlink:href='http://qnimg.inner.evente.cn/8c/aa/e7/99b6da1c7b6e6493e2d859988a.jpg' id='svg_bg_image_' height='480' width='640' y='0' x='0'  /></g></svg>"
+//var svgXml="<svg width= ' 640 ' height=' 480 ' viewBox='0 0 640 480'  xmlns='http://www.w3.org/2000/svg'> <g> <title>background</title>  <rect fill='none' id='canvas_background' height='482' width='642' y='-1' x='-1'/><g display='none' overflow='visible' y='0' x='0' height='100%' width='100%' id='canvasGrid'> <rect fill='url(#gridpattern)' stroke-width='0' y='0' x='0' height='100%' width='100%'/> </g> </g><g> <title>Layer 1</title><rect height='97' width='277' y='133' x='123.5' stroke-width='1.5' stroke='#000' fill='#0fffff' id='697'  /><ellipse ry='45' rx='67' cy='351' cx='238.5' stroke-width='1.5' stroke='#000' fill='#0000ff' id='698'  /><image xlink:href='http://qnimg.inner.evente.cn/8c/aa/e7/99b6da1c7b6e6493e2d859988a.jpg' id='svg_bg_image_' height='480' width='640' y='0' x='0'  /></g></svg>"
+//var svgXml="<svg width= ' 640 ' height=' 480 ' xmlns='http://www.w3.org/2000/svg'> <g> <title>background</title>  <rect fill='none' id='canvas_background' height='482' width='642' y='-1' x='-1'/><g display='none' overflow='visible' y='0' x='0' height='100%' width='100%' id='canvasGrid'> <rect fill='url(#gridpattern)' stroke-width='0' y='0' x='0' height='100%' width='100%'/> </g> </g><g> <title>Layer 1</title><rect height='112' width='146' y='99' x='172.5' stroke-width='1.5' stroke='#000' fill='#bfbf00' id='753'  /><path d='m177.5,265c7,-2 28.2162,-5.36215 45,-2c14.27658,2.85989 26.55399,10.58194 37,25c4.2308,5.83954 9.8631,19.62454 13,40c5.03055,32.67557 2.83337,49.71295 -3,62c-6.18536,13.02847 -10.9183,16.11215 -15,19c-5.8867,4.16495 -8.4039,5.4884 -22,1c-11.47398,-3.78784 -19.08554,-8.83469 -25,-12c-7.10829,-3.80423 -11.87137,-7.09979 -15,-11c-5.76892,-7.19162 -9.3853,-10.77173 -14,-19c-1.0938,-1.95029 -5.1169,-10.96765 -7,-18c-1.0665,-3.98279 -2,-6 -2,-10c0,-4 -0.65482,-7.17697 1,-12c0.72569,-2.11505 1.31075,-5.08026 2,-8c1.02748,-4.35251 4.95517,-5.54916 6,-9c0.86935,-2.87128 1.48625,-4.82376 2,-7c0.4595,-1.9465 0.49345,-4.87857 1,-8c0.32036,-1.97418 0,-3 0,-5c0,-1 0,-2 0,-3c0,-2 0,-5 0,-8c0,-1 -0.29289,-4.29291 -1,-5c-0.70711,-0.70709 -1.4588,-1.69345 -2,-3c-0.38269,-0.92389 -0.29289,-1.29291 -1,-2c-0.70711,-0.70709 -1.14935,-0.47427 -2,-1c-1.90211,-1.17557 -1,-3 -2,-4l0,-1l0,-1' stroke-width='1.5' stroke='#000' fill='#bf005f' id='754'  /></g></svg>"
+var svgXml="<svg id='svgArea' width='640' height='480' x='138' y='25' overflow='hidden' xmlns='http://www.w3.org/2000/svg' xmlns:se='http://svg-edit.googlecode.com' xmlns:xlink='http://www.w3.org/1999/xlink' viewBox='0 0 640 480'> <g> <title>background</title>  <rect fill='none' id='canvas_background' height='482' width='642' y='-1' x='-1'/><g display='none' overflow='visible' y='0' x='0' height='100%' width='100%' id='canvasGrid'> <rect fill='url(#gridpattern)' stroke-width='0' y='0' x='0' height='100%' width='100%'/> </g> </g><g> <title>Layer 1</title><rect height='112' width='146' y='99' x='172.5' stroke-width='1.5' stroke='#000' fill='#bfbf00' id='753'  /><path d='m177.5,265c7,-2 28.2162,-5.36215 45,-2c14.27658,2.85989 26.55399,10.58194 37,25c4.2308,5.83954 9.8631,19.62454 13,40c5.03055,32.67557 2.83337,49.71295 -3,62c-6.18536,13.02847 -10.9183,16.11215 -15,19c-5.8867,4.16495 -8.4039,5.4884 -22,1c-11.47398,-3.78784 -19.08554,-8.83469 -25,-12c-7.10829,-3.80423 -11.87137,-7.09979 -15,-11c-5.76892,-7.19162 -9.3853,-10.77173 -14,-19c-1.0938,-1.95029 -5.1169,-10.96765 -7,-18c-1.0665,-3.98279 -2,-6 -2,-10c0,-4 -0.65482,-7.17697 1,-12c0.72569,-2.11505 1.31075,-5.08026 2,-8c1.02748,-4.35251 4.95517,-5.54916 6,-9c0.86935,-2.87128 1.48625,-4.82376 2,-7c0.4595,-1.9465 0.49345,-4.87857 1,-8c0.32036,-1.97418 0,-3 0,-5c0,-1 0,-2 0,-3c0,-2 0,-5 0,-8c0,-1 -0.29289,-4.29291 -1,-5c-0.70711,-0.70709 -1.4588,-1.69345 -2,-3c-0.38269,-0.92389 -0.29289,-1.29291 -1,-2c-0.70711,-0.70709 -1.14935,-0.47427 -2,-1c-1.90211,-1.17557 -1,-3 -2,-4l0,-1l0,-1' stroke-width='1.5' stroke='#000' fill='#bf005f' id='754'  /> </g></svg>";
+function init_embed() {
+var frame = document.getElementById('svgedit');
+svgCanvas = new embedded_svg_edit(frame);
+console.log('asd',svgCanvas)
+// Hide main button, as we will be controlling new/load/save etc from the host document
+if (svgXml != "") {
+  svgCanvas.setSvgString(svgXml);
+}
+
+}
+
+function resetSvg() {
+$.confirmDialog('确定重新绘制么？', function () {
+  svgCanvas.setSvgString('<svg width="640" height="480" xmlns="http://www.w3.org/2000/svg"> <g> <title>background</title> <rect fill="#fff" id="canvas_background" height="482" width="642" y="-1" x="-1"/> <g display="none" overflow="visible" y="0" x="0" height="100%" width="100%" id="canvasGrid"> <rect fill="url(#gridpattern)" stroke-width="0" y="0" x="0" height="100%" width="100%"/> </g> </g> <g> <title>Layer 1</title> </g> </svg>');
+  $.closeDialog()
+})
+
+}
+function uploadImg(){
+document.getElementById('file').click();
+}
+function changeImg(e){
+    const files = Object.assign({}, e.target.files);
+        const reader = new FileReader();
+        reader.readAsDataURL(files[0]);
+    //     reader.onload = (ev) => {
+    //       let strfile = `base64_str=${ev.target.result}`;
+    //       strfile = strfile.replace(/\+/g, '%2B');
+    //       this.addBImage(strfile);
+    //     //   activity.postUploadImg(strfile).then((res) => {
+    //     //     this.addBImage(res.url);
+    //     //   });
+    //     };
+    //    addBImage(files[0])
+     addBImage('http://qnimg.inner.evente.cn/8c/aa/e7/99b6da1c7b6e6493e2d859988a.jpg')
+}
+//这个没有？？
+function addBImage(url) {
+svgCanvas.addSvgElementFromJson({
+  element: 'image',
+  attr: {
+    x: 0,
+    y: 0,
+    width: 640,
+    height: 480,
+    id: 'svg_bg_image_',
+    'xlink:href': url,
+    opacity: 1,
+    style: 'pointer-events:inherit'
+  }
+})
+
+setTimeout(function() {
+  var $image = $('#svg_bg_image_', $('#svgedit')[0].contentWindow.document);
+  // var $imagePrev = $image.prev().prev();
+  // $imagePrev.before($image);
+  var $imagePrev = $image.parent();
+  $imagePrev.prepend($image);
+}, 100);
+ }
+function handleSvgData(d, error) {
+if (error) {
+  alert('error ' + error);
+} else {
+  var curData = $(d);
+  var svgData = {};
+  var data = [];
+  var areaCount = 0;
+  if (curData && curData[0].nodeName == "svg") {
+    try {
+      var curSvg = $(curData[0]);
+      svgData['width'] = parseInt(curSvg.attr('width'));
+      svgData['height'] = parseInt(curSvg.attr('height'));
+      curData.find('*').each(function (i, e) {
+
+        var ele = $(e);
+        if (ele.attr('id') == 'canvas_background' || ele.parent().attr('id') == 'canvasGrid') {
+          return;
+        }
+        for (i = 0; i < ele.length; i++) {
+          var eleAttrs = $(ele[i].attributes);
+          var d = {};
+          var attrs = [];
+          eleAttrs.each(function (i, o) {
+            var attr = {};
+            attr['eleKey'] = o.name;
+            attr['eleValue'] = o.value;
+            attrs.push(attr);
+          });
+          d['type'] = e.nodeName.toLowerCase();
+          if (d['type'] == 'text') {
+            attrs.push({
+              "eleKey": "innerText",
+              "eleValue": $(ele[i]).html()
+            });
+          }
+          d['attributes'] = attrs;
+
+
+          if (d['type'] == 'rect' || d['type'] == 'path' || d['type'] == 'ellipse' || d['type'] == 'image' || d['type'] == 'circle' || d['type'] == 'polygon') {
+            data.push(d);
+            if (d['type'] != 'image') {
+              areaCount++
+            }
+          }
+        }
+      });
+      svgData['data'] = data;
+    } catch (e) {
+    }
+  }
+  var chart_name = $('#chart_name').val();
+  chart_name = $.trim(chart_name);
+  // if (chart_name == "") {
+  //   // _toast._show('请填写座位图名称');
+  //   return;
+  // }
+
+  if (areaCount <= 0) {
+    // _toast._show('请绘制座位图');
+    return;
+  }
+  var jsonData = (JSON.stringify(svgData));
+  console.log('asdas111',jsonData)
+
+  saveChart(chart_name, jsonData)
+  // alert('Congratulations. Your SVG string is back in the host page, do with it what you will\n\n' + data);
+}
+}
+function saveSvg() {
+svgCanvas.getSvgString()(handleSvgData);
+console.log('asda',svgCanvas)
+}
+
+function saveChart(chart_name, jsonData) {
+// if (is_submit) {
+//   _toast._show('正在提交，请稍等');
+  return;
+// }
+is_submit = true;
+if (svgXml != "") {
+  var url = "/chart/show?chart_id="
+} else {
+  var url = "/chart/create"
+}
+$.post(url, {'jsonData': jsonData, chart_name: chart_name}, function (response) {
+  if (response.code == 10000) {
+    // _toast._show('保存成功');
+    if (svgXml != "") {
+      window.location.href = "/chart/area_list?chart_id="
+    } else {
+      window.location.href = "/chart/area_list?chart_id=" + response.data.chart_id
+    }
+  } else {
+    // _toast._show(response.msg);
+    is_submit = false;
+  }
+})
+}
+
+$('.tips-close').click(function(){
+  $('#guide-layer-box, #guide-layer').hide();
+})
+</script>

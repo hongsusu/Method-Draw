@@ -1,0 +1,266 @@
+<?php echo Yaf\View\Simple::render(EVIEW . 'public/org.event.header.phtml'); ?>
+
+<style>
+  [v-cloak] {
+    display: none;
+  }
+
+  #spinner {
+    width: 30px;
+    height: 30px;
+    background: url(<?php echo library\Base\Tools::asset_static('evente/c/wap/img/hotel/loading.gif'); ?>) no-repeat center center;
+    background-size: contain;
+    margin: 30px auto;
+  }
+
+  #load {
+    text-align: center
+  }
+
+  rect, path, ellipse {
+    cursor: pointer;
+  }
+
+  .seat-details-l .active {
+    background: #fff6ee none repeat scroll 0 0 !important;
+  }
+</style>
+<div class="container clearfix area" id="chart_app" v-cloak>
+
+  <div class="proBar mb10">
+    <img src="<?php echo library\Base\Tools::asset_static('evente/b/desktop/images/temp/pro_bar2.png'); ?>" alt=""/>
+  </div>
+  <div class="drawArea">
+    <div class="panel ml30 mr30">
+      <div class="panel-title" style="margin: 0">
+        <span class="panel-tit left">场馆座位划分</span>
+        <span class="right">当前座位图：<?php echo $chart_info->name; ?></span>
+      </div>
+    </div>    
+
+    <div class="mt10 mb10 ml30 mr30">
+        <div class="mb10" style='height: 35px; line-height: 35px;'>
+          共计座位数：{{allSeatCount()}}
+          <a href="javascript:;" class="blue ml20" @click="getAreaList">
+            <img src="<?php echo library\Base\Tools::asset_static('evente/b/desktop/images/images/icon_sx.png'); ?>"
+                 alt="" class="mr8 mt10"/>
+            刷新
+          </a>
+
+          <a class="btn btn-e J-btn-editpart right" href="/chart/show?chart_id=<?php echo $chart_info->id;?>">上一步，修改分区图</a>
+          
+        </div>
+    </div>
+    <div class="clearfix mt20 ml30 mr30" style="padding-bottom:25px">
+      <div class="seat-details-l">
+        <table border="0" class="tabel-detail mt10">
+          <tbody>
+          <tr>
+            <th class="first" width="33.33%">分区名称</th>
+            <th class="first" width="33.33%">座位数</th>
+            <th class="first" width="33.33%">操作</th>
+          </tr>
+          <tr v-show="loading">
+            <td colspan="3">
+              <div id="load">
+                <div id="spinner"></div>
+              </div>
+            </td>
+          </tr>
+          <tr v-for="(item, index) in area_list" v-show="!loading" :class="{'active':item.active}"
+              @mouseover="area_active_tr(index,$event)"
+              @mouseout="area_out_active_tr(index, $event)">
+            <td>{{item.name}}</td>
+            <td>{{item.seat_count}}</td>
+            <td>
+              <a class="blue" target="_blank" :href="'/chart/seat?area_id='+item.id">编辑座位图</a>
+              <a class="red ml10" href="javascript:;" @click="delArea(index)">删除</a>
+            </td>
+          </tr>
+
+          </tbody>
+        </table>
+      </div>
+      <div class="seat-details-r" style="margin-top:0px ">
+
+        <div class="box-seat-details-r" style="height: auto;text-align: center;">
+
+          <!-- 占位区域，有真实内容是 此处 seizeSeat 可以删除 -->
+          <svg height="<?php echo $chart_info->image_data['height'] * (640 / $chart_info->image_data['width']) ?>"
+               width="640"
+               viewBox="0 0 <?php echo $chart_info->image_data['width'] ?> <?php echo $chart_info->image_data['height'] ?>"
+               xmlns="http://www.w3.org/2000/svg" xmlns:xlink="http://www.w3.org/1999/xlink">
+            <image v-bind="getAttr(chart_info.image_data.image.attributes)"/>
+            <component
+                v-for="(item, index) in area_list"
+                :is='item.svg_data.type'
+                v-bind="getAttr(item.svg_data.attributes)"
+                class="area_item"
+                @mouseover="area_active_tr(index,$event)"
+                @mouseout="area_out_active_tr(index, $event)"
+            >
+            </component>
+          </svg>
+        </div>
+<!--         <div class="align-center mt20 mb20">
+          <a class="btn btn-e J-btn-editpart" href="/chart/show?chart_id=<?php echo $chart_info->id;?>">修改分区图</a>
+        </div> -->
+      </div>
+    </div>
+  </div>
+  <!-- /右侧 -->
+  <div class="my-loyer"></div>
+  <div class="my-window J-del" style="width:334px; height:158px; margin-left:-167px; margin-top:-79px;">
+    <div class="align-center f14" style="padding:30px 0 37px">确定删除该分区吗？</div>
+    <div class="clearfix align-center">
+      <a class="btn btn-e J-save" href="javascript:;" @click="okDel">确定</a>
+      <a class="btn btn-e ml30 J-reset" href="javascript:;" @click="cancelDel">取消</a>
+    </div>
+  </div>
+</div>
+<?php echo Yaf\View\Simple::render(EVIEW . 'public/org.footer.phtml'); ?>
+
+<script>
+
+  var svgRect = Vue.extend({
+    template: '<rect />',
+
+  })
+  var svgPath = Vue.extend({
+    template: '<path />',
+
+  })
+  var svgEllipse = Vue.extend({
+    template: '<ellipse />',
+  })
+
+  var svgCircle = Vue.extend({
+    template: '<circle />',
+  })
+
+  var svgPolygon = Vue.extend({
+    template: '<polygon />',
+  })
+  var App = new Vue({
+    el: '#chart_app',
+    data: function () {
+      return {
+        chart_info: <?php echo $chart_info->toJson();?>,
+        area_list: <?php echo $area_list->toJson();?>,
+        loading: false,
+        delIndex: -1
+      }
+    },
+    components: {
+      rect: svgRect,
+      path: svgPath,
+      ellipse: svgEllipse,
+      circle: svgCircle,
+      polygon: svgPolygon,
+    },
+    mounted: function () {
+    },
+    watch: {},
+    methods: {
+      // 获取座位图
+      getAreaList: function () {
+        var self = this
+        if (self.loading) {
+          return
+        }
+        self.loading = true
+        $.get('/chart/area_list?chart_id=<?php echo $chart_info->id?>', function (response) {
+          if (response.code == 10000) {
+            self.area_list = response.data
+            self.loading = false
+          }
+        });
+      },
+      delArea: function (index) {
+        $(".my-loyer, .J-del").fadeIn();
+        this.delIndex = index
+      },
+      cancelDel: function () {
+        $(".my-loyer, .J-del").fadeOut();
+        this.delIndex = -1
+      },
+      okDel: function () {
+        if (this.delIndex == -1) {
+          return;
+        }
+        var index = this.delIndex;
+        this.delIndex = -1
+        var self = this;
+        var url = "/chart/area_del";
+        $.post(url, {'area_id': this.area_list[index].id}, function (response) {
+          if (response.code == 10000) {
+            _toast._show('删除成功');
+            self.area_list.splice(index, 1)
+          } else {
+            _toast._show(response.message);
+          }
+          $(".my-loyer, .J-del").fadeOut();
+        })
+      },
+      allSeatCount: function () {
+        var count = 0
+        for (var i = 0; i < this.area_list.length; i++) {
+          count += parseInt(this.area_list[i]['seat_count'])
+        }
+        return count
+      },
+      getAttr: function (attributes) {
+        var attr = {}
+        for (var i in  attributes) {
+          attr[attributes[i]['eleKey']] = attributes[i]['eleValue']
+        }
+        return attr
+      },
+      area_active_tr: function (index) {
+        var el = $('.area_item').eq(index)
+        var data_attr = {
+          'fill': el.attr('fill'),
+          'stroke': el.attr('stroke'),
+          'stroke-width': el.attr('stroke-width'),
+          'opacity': el.attr('opacity'),
+        }
+        if (data_attr.fill == undefined) {
+          data_attr.fill = ""
+        }
+        el.data('attr', data_attr)
+        el.attr('fill', '#62bbff');
+        el.attr('opacity', '0.8');
+        el.attr('stroke-width', '2');
+        el.attr('stroke', '#535353');
+
+        this.$set(this.area_list[index], 'active', true)
+      },
+      area_out_active_tr: function (index, $event) {
+        this.$set(this.area_list[index], 'active', false)
+        var el = $('.area_item').eq(index)
+        el.attr(el.data('attr'))
+      },
+
+
+    }
+
+  });
+
+  /* nan 0322 */
+$(function(){
+  var boxTop = $(".seat-details-r").offset().top;
+  if( $(".seat-details-l").find("tr").length > 7 ){
+    $(document, "body").scroll(function(){
+      var scrollTop = $(document).scrollTop();
+      console.log(boxTop + '-' + scrollTop)
+      if( boxTop <= scrollTop ){
+        $(".seat-details-r").addClass("fixed-box"); 
+      }else if(boxTop > scrollTop){
+        $(".seat-details-r").removeClass("fixed-box");
+      }
+    });
+  }else{
+    $(".seat-details-r").css("border-bottom","none");
+  }
+});
+</script>
